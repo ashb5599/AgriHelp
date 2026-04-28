@@ -1,8 +1,3 @@
-"""
-AgroSense AI  —  app.py
-Run:  streamlit run app.py
-"""
-
 import os
 import streamlit as st
 import pandas as pd
@@ -19,7 +14,7 @@ from modules.config   import SOIL_ZONES, CROP_NPK
 from modules.weather  import get_weather_by_city, weather_risk_summary
 from modules.market   import get_market_price, get_profit_estimate
 from modules.disease  import analyse_leaf, heuristic_diagnosis
-from modules.agronomy import (get_relative_calendar, fertiliser_recommendation,
+from modules.agronomy import (get_field_calendar, fertiliser_recommendation,
                                soil_health_score, irrigation_advice, MONTHS, ACTIVITY_COLORS)
 
 # ── Permanent Light Mode Tokens ───────────────────────────────────────────────
