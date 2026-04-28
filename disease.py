@@ -14,7 +14,11 @@ from modules.config import DISEASE_TREATMENTS
 # ─────────────────────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────────────────────
-YOLO_MODEL_PATH = "runs/detect/plant_disease3/weights/best.pt"
+YOLO_MODEL_PATH = "# ─────────────────────────────────────────────────────────────
+# CONFIG
+# ─────────────────────────────────────────────────────────────
+YOLO_MODEL_PATH = "yolov8n.pt"  # <-- Updated to match your GitHub repo
+CNN_MODEL_PATH  = "plant_disease_model.h5""
 CNN_MODEL_PATH  = "plant_disease_model.h5"
 
 # Load YOLO once
