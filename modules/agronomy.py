@@ -569,3 +569,74 @@ def irrigation_advice(crop: str, rainfall: float, humidity: float,
         "demand_level":   ["—","Low","Low-Med","Medium","Med-High","High"][demand],
         "et_daily_mm":    round(et_daily, 1),
     }
+# ── UI Adapters & Constants (Added to resolve ImportError) ────────────────────
+
+MONTHS = ["Month 1", "Month 2", "Month 3", "Month 4", "Month 5", "Month 6"]
+
+ACTIVITY_COLORS = {
+    "Rest": "#E1E4E8",
+    
+    # Germination / Sowing (Ambers/Browns)
+    "Sowing & Germination": "#9A6700", "Sowing & Seedling": "#9A6700",
+    "Sowing & Tillering": "#9A6700", "Sowing & Early Vegetative": "#9A6700",
+    "Sowing & Establishment": "#9A6700", "Planting & Establishment": "#9A6700",
+    "Basin Prep & Fertilization": "#9A6700", "Foundation Pruning": "#9A6700",
+    "Dormancy & Pruning": "#9A6700",
+
+    # Vegetative / Growth (Greens)
+    "Early Vegetative Growth": "#2DA44E", "Active Vegetative Growth": "#2DA44E",
+    "Vegetative & Pre-Flowering": "#2DA44E", "Vegetative Growth": "#2DA44E",
+    "Vegetative Growth (Knee High)": "#2DA44E", "Vegetative Growth & Borer Control": "#2DA44E",
+    "Branching & Nipping": "#2DA44E", "Branching & Pre-Flowering": "#2DA44E",
+    "Active Tillering & Booting": "#2DA44E", "Tillering Stage": "#2DA44E",
+    "Shoot Growth": "#2DA44E", "Green Manuring": "#2DA44E",
+
+    # Flowering (Yellows)
+    "Bud Break & Bloom": "#D4A72C", "Flowering": "#D4A72C",
+    "Flowering & Pod Formation": "#D4A72C", "Flowering & Boll Formation": "#D4A72C",
+    "Flowering & Fruit Set": "#D4A72C", "Tasseling & Silking": "#D4A72C",
+    "Blossom & Backing Showers": "#D4A72C", "Panicle Initiation & Heading": "#D4A72C",
+    "Heading & Grain Filling": "#D4A72C",
+
+    # Development / Maturation (Blues)
+    "Fruit Set & Thinning": "#0969DA", "Fruit Growth": "#0969DA",
+    "Pre-Shooting Stage": "#0969DA", "Bunch Emergence": "#0969DA",
+    "Pod Development": "#0969DA", "Pod Development & Harvest": "#0969DA",
+    "Boll Development": "#0969DA", "Berry Expansion & Shade Management": "#0969DA",
+    "Berry Development & Harvest": "#0969DA", "Nutrient Recovery": "#0969DA",
+    "Moisture Conservation": "#0969DA", "Cane Maturity": "#0969DA",
+    "Forward (Fruit) Pruning": "#0969DA",
+
+    # Harvest (Reds)
+    "Pre-Harvest Prep": "#CF222E", "Harvesting": "#CF222E",
+    "Harvesting Prep": "#CF222E", "Bunch Development & Harvest": "#CF222E",
+    "Maturity & Harvest": "#CF222E", "Boll Opening & Picking": "#CF222E",
+    "Grain Filling to Harvest": "#CF222E"
+
+
+def get_field_calendar(crop: str) -> dict:
+    """
+    Adapter function to map the relative calendar data into the format
+    expected by the Streamlit frontend.
+    """
+    rel_cal = get_relative_calendar(crop)
+    calendar = {}
+    milestones = []
+
+    for month in MONTHS:
+        if month in rel_cal:
+            phase = rel_cal[month]["phase"]
+            calendar[month] = phase
+
+            # Combine the weekly tasks into a single milestone description
+            weeks = rel_cal[month].get("weeks", {})
+            desc = " ".join(weeks.values())
+            milestones.append((month, f"{phase}: {desc}"))
+        else:
+            calendar[month] = "Rest"
+
+    return {
+        "season": "Standard 6-Month Cycle",
+        "calendar": calendar,
+        "milestones": milestones
+    }
