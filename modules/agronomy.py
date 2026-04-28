@@ -1,13 +1,3 @@
-"""
-modules/agronomy.py
-────────────────────
-Agronomic helpers:
-  • Relative field calendar generation (phase-by-phase)
-  • Fertiliser dose calculator
-  • Soil health scoring
-  • Irrigation scheduling
-"""
-
 from modules.config import CROP_NPK, SOIL_ZONES
 
 # ── Relative Crop Calendars ───────────────────────────────────────────────────
@@ -569,7 +559,8 @@ def irrigation_advice(crop: str, rainfall: float, humidity: float,
         "demand_level":   ["—","Low","Low-Med","Medium","Med-High","High"][demand],
         "et_daily_mm":    round(et_daily, 1),
     }
-# ── UI Adapters & Constants (Added to resolve ImportError) ────────────────────
+
+# ── UI Adapters & Constants (Added to resolve ImportError/SyntaxError) ────────
 
 MONTHS = ["Month 1", "Month 2", "Month 3", "Month 4", "Month 5", "Month 6"]
 
@@ -612,7 +603,7 @@ ACTIVITY_COLORS = {
     "Harvesting Prep": "#CF222E", "Bunch Development & Harvest": "#CF222E",
     "Maturity & Harvest": "#CF222E", "Boll Opening & Picking": "#CF222E",
     "Grain Filling to Harvest": "#CF222E"
-
+}
 
 def get_field_calendar(crop: str) -> dict:
     """
