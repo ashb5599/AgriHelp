@@ -1,0 +1,35 @@
+names:
+- Apple Scab
+- Apple Healthy
+- Apple Cedar Rust
+- Bell Pepper Healthy
+- Bell Pepper Bacterial Spot
+- Blueberry Healthy
+- Cherry Healthy
+- Cherry Powdery Mildew
+- Corn Gray Leaf Spot
+- Corn Common Rust
+- Peach Healthy
+- Peach Bacterial Spot
+- Potato Early Blight
+- Potato Late Blight
+- Raspberry Healthy
+- Soybean Healthy
+- Squash Powdery Mildew
+- Strawberry Healthy
+- Strawberry Leaf Scorch
+- Tomato Septoria Leaf Spot
+- Tomato Yellow Leaf Curl Virus
+- Tomato Bacterial Spot
+- Tomato Late Blight
+- Tomato Mosaic Virus
+- Tomato Target Spot
+- Tomato Leaf Mold
+- Tomato Spider Mites
+- Grape Healthy
+- Grape Black Rot
+nc: 29
+path: C:\Users\aisva\Downloads\AgriHelp-main
+test: test/images
+train: train/images
+val: val/images
