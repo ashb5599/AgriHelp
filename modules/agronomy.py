@@ -2,96 +2,458 @@
 modules/agronomy.py
 ────────────────────
 Agronomic helpers:
-  • Field calendar generation (month-by-month)
+  • Relative field calendar generation (phase-by-phase)
   • Fertiliser dose calculator
   • Soil health scoring
   • Irrigation scheduling
 """
 
-from modules.config import (
-    KHARIF_CROPS, RABI_CROPS, PERENNIAL_CROPS, CROP_NPK, SOIL_ZONES
-)
+from modules.config import CROP_NPK, SOIL_ZONES
 
-MONTHS = ["Jan","Feb","Mar","Apr","May","Jun",
-          "Jul","Aug","Sep","Oct","Nov","Dec"]
-
-# Activity type → CSS-style colour (used in UI)
-ACTIVITY_COLORS = {
-    "Land Prep":   "#4A6275",
-    "Sowing":      "#1B6CA8",
-    "Irrigation":  "#0D9488",
-    "Fertilising": "#7C5C1E",
-    "Pest Mgmt":   "#B0281E",
-    "Growing":     "#286A3A",
-    "Harvest":     "#C8963E",
-    "Rest":        "#D4DDE5",
-    "Drying":      "#9A6318",
-    "Storage":     "#4A6275",
-}
-
-# Kharif calendar (Jun–Nov)
-_KHARIF = {
-    "May": "Land Prep", "Jun": "Sowing", "Jul": "Growing",
-    "Aug": "Irrigation", "Sep": "Fertilising", "Oct": "Pest Mgmt",
-    "Nov": "Harvest", "Dec": "Drying", "Jan": "Storage",
-    "Feb": "Rest", "Mar": "Rest", "Apr": "Land Prep",
-}
-
-# Rabi calendar (Oct–Mar)
-_RABI = {
-    "Sep": "Land Prep", "Oct": "Sowing", "Nov": "Growing",
-    "Dec": "Irrigation", "Jan": "Fertilising", "Feb": "Pest Mgmt",
-    "Mar": "Harvest", "Apr": "Drying", "May": "Storage",
-    "Jun": "Rest", "Jul": "Rest", "Aug": "Land Prep",
-}
-
-# Perennial (year-round with seasonal peaks)
-_PERENNIAL = {
-    "Jan": "Irrigation", "Feb": "Fertilising", "Mar": "Growing",
-    "Apr": "Pest Mgmt",  "May": "Growing",     "Jun": "Irrigation",
-    "Jul": "Growing",    "Aug": "Irrigation",  "Sep": "Harvest",
-    "Oct": "Harvest",    "Nov": "Harvest",      "Dec": "Rest",
-}
-
-
-def get_field_calendar(crop: str) -> dict:
-    """
-    Return month → activity mapping for a crop.
-    Also returns key milestones list.
-    """
-    crop_l = crop.lower()
-    if crop_l in KHARIF_CROPS:
-        calendar = _KHARIF.copy()
-        season   = "Kharif (Monsoon)"
-        milestones = [
-            ("Jun", "Sow seeds after first monsoon rain"),
-            ("Sep", "Apply second dose of nitrogen fertiliser"),
-            ("Nov", "Harvest when moisture content < 20%"),
-        ]
-    elif crop_l in RABI_CROPS:
-        calendar = _RABI.copy()
-        season   = "Rabi (Winter)"
-        milestones = [
-            ("Oct", "Sow after soil temperature drops below 25°C"),
-            ("Jan", "Apply phosphorus top-dressing"),
-            ("Mar", "Harvest when grain turns golden"),
-        ]
-    else:
-        calendar = _PERENNIAL.copy()
-        season   = "Perennial / Year-round"
-        milestones = [
-            ("Feb", "Apply organic manure before flowering"),
-            ("Sep", "Harvest at peak ripeness"),
-            ("Dec", "Pruning and orchard management"),
-        ]
-
-    return {
-        "calendar":   calendar,
-        "season":     season,
-        "milestones": milestones,
-        "colors":     ACTIVITY_COLORS,
+# ── Relative Crop Calendars ───────────────────────────────────────────────────
+RELATIVE_CROP_CALENDARS = {
+    "apple": {
+        "Month 1": {
+            "phase": "Dormancy & Pruning",
+            "weeks": {
+                "Week 1-2": "Conduct dormant pruning. Remove dead, diseased, and crossing branches.",
+                "Week 3-4": "Apply dormant oil spray to suffocate overwintering pests and eggs."
+            }
+        },
+        "Month 2": {
+            "phase": "Bud Break & Bloom",
+            "weeks": {
+                "Week 1-2": "Monitor bud break. Apply preventive fungicide for apple scab.",
+                "Week 3-4": "Bloom phase. Introduce beehives to the orchard. DO NOT apply insecticides."
+            }
+        },
+        "Month 3": {
+            "phase": "Fruit Set & Thinning",
+            "weeks": {
+                "Week 1-2": "Monitor fruit set. Begin chemical or manual thinning to ensure fruit size.",
+                "Week 3-4": "Apply first cover sprays for codling moth and apple maggots."
+            }
+        },
+        "Month 4": {
+            "phase": "Fruit Growth",
+            "weeks": {
+                "Week 1-2": "Provide steady irrigation. Summer pruning to expose fruit to sunlight.",
+                "Week 3-4": "Monitor for powdery mildew and aphids. Maintain weed control."
+            }
+        },
+        "Month 5": {
+            "phase": "Pre-Harvest Prep",
+            "weeks": {
+                "Week 1-2": "Apply pre-harvest drop control sprays if necessary.",
+                "Week 3-4": "Prepare harvest bins and cold storage. Stop irrigation to improve sugar content."
+            }
+        },
+        "Month 6": {
+            "phase": "Harvesting",
+            "weeks": {
+                "Week 1-2": "Conduct starch-iodine tests to determine maturity. Begin early harvest.",
+                "Week 3-4": "Main harvest. Grade and store apples immediately to preserve crispness."
+            }
+        }
+    },
+    "banana": {
+        "Month 1": {
+            "phase": "Planting & Establishment",
+            "weeks": {
+                "Week 1-2": "Dig pits, expose to sun. Plant disease-free tissue culture suckers.",
+                "Week 3-4": "Apply basal FYM and light irrigation. First manual weeding."
+            }
+        },
+        "Month 2": {
+            "phase": "Early Vegetative Growth",
+            "weeks": {
+                "Week 1-2": "Apply 1st split dose of Nitrogen and Potassium. Maintain soil moisture.",
+                "Week 3-4": "Desuckering (remove unwanted side shoots). Monitor for nematodes."
+            }
+        },
+        "Month 3": {
+            "phase": "Active Vegetative Growth",
+            "weeks": {
+                "Week 1-2": "Earthing up to support the pseudo-stem. Apply 2nd split dose of NPK.",
+                "Week 3-4": "Apply neem cake for rhizome weevil prevention. Second weeding."
+            }
+        },
+        "Month 4": {
+            "phase": "Pre-Shooting Stage",
+            "weeks": {
+                "Week 1-2": "Apply 3rd split dose of fertilizers. Ensure strict irrigation.",
+                "Week 3-4": "Remove dried leaves. Spray micro-nutrients (Zinc/Boron) if deficient."
+            }
+        },
+        "Month 5": {
+            "phase": "Bunch Emergence",
+            "weeks": {
+                "Week 1-2": "Shooting begins. Apply bunch covers to protect from sun and pests.",
+                "Week 3-4": "Propping: support stems with bamboo poles to prevent wind damage."
+            }
+        },
+        "Month 6": {
+            "phase": "Bunch Development & Harvest",
+            "weeks": {
+                "Week 1-2": "Denavelling: remove the male bud to direct energy to the fruit.",
+                "Week 3-4": "Harvesting: cut bunches when fruit angles become rounded and plump."
+            }
+        }
+    },
+    "barley": {
+        "Month 1": {
+            "phase": "Sowing & Tillering",
+            "weeks": {
+                "Week 1-2": "Seed treatment with fungicide. Sowing at 3-5 cm depth.",
+                "Week 3-4": "Crown Root Initiation (CRI). First critical irrigation. Apply nitrogen top-dressing."
+            }
+        },
+        "Month 2": {
+            "phase": "Active Tillering & Booting",
+            "weeks": {
+                "Week 1-2": "Maximum tillering stage. Monitor for broadleaf weeds and apply herbicides.",
+                "Week 3-4": "Booting stage begins. Second critical irrigation required if dry."
+            }
+        },
+        "Month 3": {
+            "phase": "Heading & Grain Filling",
+            "weeks": {
+                "Week 1-2": "Heading and flowering. Do not stress the crop for water.",
+                "Week 3-4": "Grain filling (milk to dough stage). Monitor for aphids and rust diseases."
+            }
+        },
+        "Month 4": {
+            "phase": "Maturity & Harvest",
+            "weeks": {
+                "Week 1-2": "Physiological maturity. Leaves turn yellow and spikes dry.",
+                "Week 3-4": "Harvesting. Cut when grain moisture drops below 14%."
+            }
+        }
+    },
+    "blackgram": {
+        "Month 1": {
+            "phase": "Sowing & Germination",
+            "weeks": {
+                "Week 1": "Land prep. Treat seeds with Rhizobium. Sow seeds.",
+                "Week 2": "Monitor germination. Apply light life-saving irrigation if needed.",
+                "Week 3": "First weeding. Check for early sap-sucking pests (whiteflies).",
+                "Week 4": "Apply first foliar nutrient spray if growth is stunted."
+            }
+        },
+        "Month 2": {
+            "phase": "Vegetative & Pre-Flowering",
+            "weeks": {
+                "Week 1": "Second weeding. Earthing up rows to prevent water-logging.",
+                "Week 2": "Pre-flowering irrigation to maximize bud count.",
+                "Week 3": "Monitor for yellow mosaic virus. Uproot infected plants.",
+                "Week 4": "Flowering begins. Avoid harsh chemical sprays to protect pollinators."
+            }
+        },
+        "Month 3": {
+            "phase": "Pod Development & Harvest",
+            "weeks": {
+                "Week 1": "Pod formation. Prevent water stress to avoid pod drop.",
+                "Week 2": "Monitor for pod borers. Apply neem-based controls if necessary.",
+                "Week 3": "Leaves begin yellowing. Stop all irrigation.",
+                "Week 4": "Harvesting. Pluck when 80% of pods turn black and brittle."
+            }
+        }
+    },
+    "chickpea": {
+        "Month 1": {
+            "phase": "Sowing & Early Vegetative",
+            "weeks": {
+                "Week 1-2": "Deep summer ploughing. Sow seeds treated with Trichoderma.",
+                "Week 3-4": "Pre-emergence weed control. Ensure adequate soil moisture."
+            }
+        },
+        "Month 2": {
+            "phase": "Branching & Nipping",
+            "weeks": {
+                "Week 1-2": "First irrigation (if rainfall is deficient) at branching stage.",
+                "Week 3-4": "Nipping (plucking apical buds) at 30-35 days to encourage lateral branching."
+            }
+        },
+        "Month 3": {
+            "phase": "Flowering",
+            "weeks": {
+                "Week 1-2": "Flowering stage begins. Crucial time for 2nd irrigation.",
+                "Week 3-4": "Monitor intensely for Gram Pod Borer (Helicoverpa). Install pheromone traps."
+            }
+        },
+        "Month 4": {
+            "phase": "Pod Development",
+            "weeks": {
+                "Week 1-2": "Pod formation and grain filling. Avoid heavy irrigation.",
+                "Week 3-4": "Apply bio-pesticides (NPV) if pod borer crosses economic threshold."
+            }
+        },
+        "Month 5": {
+            "phase": "Harvesting",
+            "weeks": {
+                "Week 1-2": "Crop matures. Leaves shed and pods turn light brown/yellow.",
+                "Week 3-4": "Harvesting and threshing. Dry seeds to 10% moisture for storage."
+            }
+        }
+    },
+    "coconut": {
+        "Month 1": {
+            "phase": "Basin Prep & Fertilization",
+            "weeks": {
+                "Week 1-2": "Open basins around palms (1.8m radius).",
+                "Week 3-4": "Apply organic manure and 1st split of NPK before monsoons."
+            }
+        },
+        "Month 2": {
+            "phase": "Green Manuring",
+            "weeks": {
+                "Week 1-2": "Sow green manure crops (like sunn hemp) in the palm basin.",
+                "Week 3-4": "Check crowns for Rhinoceros beetle damage. Clean crowns."
+            }
+        },
+        "Month 3": {
+            "phase": "Nutrient Recovery",
+            "weeks": {
+                "Week 1-2": "Incorporate grown green manure into the soil.",
+                "Week 3-4": "Apply 2nd split dose of NPK post-monsoon."
+            }
+        },
+        "Month 4": {
+            "phase": "Moisture Conservation",
+            "weeks": {
+                "Week 1-2": "Mulch basins with dried coconut leaves or coir pith.",
+                "Week 3-4": "Begin summer irrigation schedule (drip irrigation preferred)."
+            }
+        }
+    },
+    "coffee": {
+        "Month 1": {
+            "phase": "Blossom & Backing Showers",
+            "weeks": {
+                "Week 1-2": "Crucial period. Provide sprinkler irrigation if natural blossom showers fail.",
+                "Week 3-4": "Backing showers needed 21 days after blossom for fruit set."
+            }
+        },
+        "Month 2": {
+            "phase": "Vegetative Growth & Borer Control",
+            "weeks": {
+                "Week 1-2": "Handling/centering bushes to allow air circulation.",
+                "Week 3-4": "Track and trace White Stem Borer. Remove affected stems."
+            }
+        },
+        "Month 3": {
+            "phase": "Berry Expansion & Shade Management",
+            "weeks": {
+                "Week 1-2": "Shade lopping to regulate sunlight during the heavy monsoon.",
+                "Week 3-4": "Apply post-monsoon fertilizers. Weed control in the estate."
+            }
+        },
+        "Month 4": {
+            "phase": "Harvesting Prep",
+            "weeks": {
+                "Week 1-2": "Clean drying yards. Prepare pulping machinery.",
+                "Week 3-4": "Arabica harvest begins. Selective hand-picking of ripe red cherries only."
+            }
+        }
+    },
+    "cotton": {
+        "Month 1": {
+            "phase": "Sowing & Seedling",
+            "weeks": {
+                "Week 1-2": "Sow acid-delinted seeds. Apply basal NPK.",
+                "Week 3-4": "Gap filling and thinning. Maintain ideal plant population. First weeding."
+            }
+        },
+        "Month 2": {
+            "phase": "Vegetative Growth",
+            "weeks": {
+                "Week 1-2": "Apply 1st top dressing of Nitrogen. Inter-cultivation for weed control.",
+                "Week 3-4": "Square (flower bud) formation begins. Monitor for jassids and aphids."
+            }
+        },
+        "Month 3": {
+            "phase": "Flowering & Boll Formation",
+            "weeks": {
+                "Week 1-2": "Peak flowering. High water requirement; irrigate if dry.",
+                "Week 3-4": "Apply 2nd top dressing of Nitrogen. Install traps for Pink Bollworm."
+            }
+        },
+        "Month 4": {
+            "phase": "Boll Development",
+            "weeks": {
+                "Week 1-2": "Boll maturation. Apply foliar spray (KNO3) to improve boll weight.",
+                "Week 3-4": "Monitor intensely for bollworm complex. Late irrigation."
+            }
+        },
+        "Month 5": {
+            "phase": "Boll Opening & Picking",
+            "weeks": {
+                "Week 1-2": "Stop irrigation. Bolls begin to burst open.",
+                "Week 3-4": "First picking after morning dew dries. Second picking follows 15 days later."
+            }
+        }
+    },
+    "grapes": {
+        "Month 1": {
+            "phase": "Foundation Pruning",
+            "weeks": {
+                "Week 1-2": "Severe pruning (back to 1-2 buds) to build vegetative framework.",
+                "Week 3-4": "Apply heavy basal organic manures and first dose of NPK. Heavy irrigation."
+            }
+        },
+        "Month 2": {
+            "phase": "Shoot Growth",
+            "weeks": {
+                "Week 1-2": "Active shoot growth. Perform sub-cane formation (pinching).",
+                "Week 3-4": "Spray preventive fungicides for Downy Mildew. Maintain weed-free vineyard."
+            }
+        },
+        "Month 3": {
+            "phase": "Cane Maturity",
+            "weeks": {
+                "Week 1-2": "Reduce irrigation and nitrogen to stop vegetative growth.",
+                "Week 3-4": "Apply Potassium and Phosphorus to encourage cane maturity (turning brown)."
+            }
+        },
+        "Month 4": {
+            "phase": "Forward (Fruit) Pruning",
+            "weeks": {
+                "Week 1-2": "Prune for fruiting. Apply Hydrogen Cyanamide paste to ensure uniform bud break.",
+                "Week 3-4": "Bud sprouting. Apply preventive sprays for Thrips and Flea beetles."
+            }
+        },
+        "Month 5": {
+            "phase": "Flowering & Fruit Set",
+            "weeks": {
+                "Week 1-2": "Flowering begins. Withhold irrigation slightly to aid fruit set.",
+                "Week 3-4": "Berry setting stage. Apply Gibberellic Acid (GA3) dips for berry elongation."
+            }
+        },
+        "Month 6": {
+            "phase": "Berry Development & Harvest",
+            "weeks": {
+                "Week 1-2": "Veraison (color change and sugar accumulation). Apply high Potassium.",
+                "Week 3-4": "Harvest when berries reach optimal TSS (Total Soluble Solids). Pack immediately."
+            }
+        }
+    },
+    "lentil": {
+        "Month 1": {
+            "phase": "Sowing & Early Vegetative",
+            "weeks": {
+                "Week 1": "Deep ploughing and seedbed preparation. Seed treatment with Rhizobium.",
+                "Week 2": "Sow seeds at 3-4 cm depth. Apply basal dose of phosphorus.",
+                "Week 3": "Monitor for uniform germination. Light irrigation if soil is completely dry.",
+                "Week 4": "First manual weeding (crucial before canopy closes). Monitor for early aphids."
+            }
+        },
+        "Month 2": {
+            "phase": "Branching & Pre-Flowering",
+            "weeks": {
+                "Week 1-2": "Active vegetative branching. Maintain weed-free environment.",
+                "Week 3-4": "Pre-flowering stage. Apply irrigation if soil moisture is critically low. Watch for pod borers."
+            }
+        },
+        "Month 3": {
+            "phase": "Flowering & Pod Formation",
+            "weeks": {
+                "Week 1-2": "Flowering phase. Avoid water stress but do not over-irrigate.",
+                "Week 3-4": "Pod formation begins. Install pheromone traps for pest monitoring."
+            }
+        },
+        "Month 4": {
+            "phase": "Maturity & Harvest",
+            "weeks": {
+                "Week 1-2": "Maturity phase. Lower leaves turn yellow and drop.",
+                "Week 3-4": "Harvest when 80% of pods turn brown and hard. Thresh after sun-drying."
+            }
+        }
+    },
+    "rice": {
+        "Month 1": {
+            "phase": "Nursery & Transplanting",
+            "weeks": {
+                "Week 1-2": "Prepare wet nursery bed. Sow pre-germinated seeds.",
+                "Week 3-4": "Puddling of main field. Transplant 21-25 day old seedlings. Apply basal NPK."
+            }
+        },
+        "Month 2": {
+            "phase": "Tillering Stage",
+            "weeks": {
+                "Week 1-2": "Maintain 2-3 cm water level. Apply first top dressing of Urea (Nitrogen).",
+                "Week 3-4": "Active tillering. Monitor for stem borer and leaf folder pests. Manual weeding."
+            }
+        },
+        "Month 3": {
+            "phase": "Panicle Initiation & Heading",
+            "weeks": {
+                "Week 1-2": "Panicle initiation. Apply second top dressing of Urea and Potassium.",
+                "Week 3-4": "Heading and flowering. Maintain 5 cm standing water. Do not spray chemicals during bloom."
+            }
+        },
+        "Month 4": {
+            "phase": "Maturity & Harvest",
+            "weeks": {
+                "Week 1-2": "Dough stage. Drain water from the field 10 days before harvest.",
+                "Week 3-4": "Harvest when 80% of panicles turn golden yellow. Dry grains to 14% moisture."
+            }
+        }
+    },
+    "maize": {
+        "Month 1": {
+            "phase": "Sowing & Establishment",
+            "weeks": {
+                "Week 1": "Deep ploughing. Sow seeds on ridges. Apply basal NPK and Zinc.",
+                "Week 2": "Emergence. Gap filling to maintain ideal plant population.",
+                "Week 3": "Thinning. Remove weak seedlings.",
+                "Week 4": "First inter-cultivation/weeding. Apply early irrigation if dry."
+            }
+        },
+        "Month 2": {
+            "phase": "Vegetative Growth (Knee High)",
+            "weeks": {
+                "Week 1-2": "Knee-high stage (V8). Crucial time for 1st top dressing of Nitrogen. Earthing up.",
+                "Week 3-4": "Rapid growth. Monitor for Fall Armyworm (Spodoptera frugiperda) strictly."
+            }
+        },
+        "Month 3": {
+            "phase": "Tasseling & Silking",
+            "weeks": {
+                "Week 1-2": "Tasseling stage. Most critical stage for irrigation—prevent any water stress.",
+                "Week 3-4": "Silking and pollination. Apply final top dressing of Nitrogen."
+            }
+        },
+        "Month 4": {
+            "phase": "Grain Filling to Harvest",
+            "weeks": {
+                "Week 1-2": "Dough to dent stage. Protect from birds and rodents.",
+                "Week 3-4": "Physiological maturity. Harvest when husk turns dry and brown (grain moisture < 20%)."
+            }
+        }
     }
+}
 
+
+def get_relative_calendar(crop: str) -> dict:
+    """
+    Return timeline phases → activity mapping for a crop.
+    """
+    normalized_crop = crop.lower().replace(" ", "")
+    
+    # Default fallback dynamically uses the crop name if it isn't in the dictionary
+    default_calendar = {
+        "Month 1": {
+            "phase": f"Initial Planning ({crop.title()})",
+            "weeks": {
+                "Week 1-4": f"Awaiting detailed operational schedule for {crop.title()}."
+            }
+        }
+    }
+    
+    return RELATIVE_CROP_CALENDARS.get(normalized_crop, default_calendar)
+
+
+# ── Agronomic Calculators ─────────────────────────────────────────────────────
 
 def fertiliser_recommendation(crop: str, N: float, P: float, K: float,
                                land_acres: float = 1.0) -> dict:
