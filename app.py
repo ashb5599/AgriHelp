@@ -539,7 +539,7 @@ if page == "Crop Advisor":
                 from modules.ml_engine import predict_crop, get_arm_rules_for_crop
                 
                 # CRITICAL BUG FIX 1: Lowercase keys expected by Pandas
-                feats = {"n":N,"p":P,"k":K,"temperature":temp,"humidity":humidity,"ph":ph,"rainfall":rainfall}
+                feats = {"n": N, "p": P, "k": K, "temperature": temp, "humidity": humidity, "ph": ph, "rainfall": rainfall}
                 res   = predict_crop(pipeline, feats)
 
                 top_crop = res["top_crop"]
